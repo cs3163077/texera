@@ -1,10 +1,10 @@
 import { Component, OnInit, Input, Output } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 
 import { Observable } from 'rxjs/Observable';
 import { UserDictionary } from '../../../service/user-dictionary/user-dictionary.interface';
 
-import { UserDictionaryService } from '../../../service/user-dictionary/user-dictionary.service';
+import { UserDictionaryService, GenericWebResponse } from '../../../service/user-dictionary/user-dictionary.service';
 
 import { NgbdModalResourceAddComponent } from './ngbd-modal-resource-add/ngbd-modal-resource-add.component';
 import { NgbdModalResourceDeleteComponent } from './ngbd-modal-resource-delete/ngbd-modal-resource-delete.component';
@@ -12,6 +12,7 @@ import { NgbdModalResourceViewComponent } from './ngbd-modal-resource-view/ngbd-
 
 import { cloneDeep } from 'lodash';
 import { FileItem } from 'ng2-file-upload';
+import { observable } from 'rxjs';
 
 export interface SavedAddDictionaryState extends Readonly<{
   name: string;
@@ -46,6 +47,10 @@ export class UserDictionarySectionComponent {
     savedQueue: [],
   };
 
+  public addModalRef!: NgbModalRef;
+
+  public isUploading: boolean = false;
+
   constructor(
     private userDictionaryService: UserDictionaryService,
     private modalService: NgbModal
@@ -71,7 +76,7 @@ export class UserDictionarySectionComponent {
   * @param dictionary: the dictionary that user wants to view
   */
   public openNgbdModalResourceViewComponent(dictionary: UserDictionary): void {
-    const modalRef = this.modalService.open(NgbdModalResourceViewComponent, {
+    const modalRef: NgbModalRef = this.modalService.open(NgbdModalResourceViewComponent, {
       beforeDismiss: () => {
         this.refreshUserDictionary();
         return true;
@@ -91,32 +96,49 @@ export class UserDictionarySectionComponent {
   * @param
   */
   public openNgbdModalResourceAddComponent(): void {
-    const modalRef = this.modalService.open(NgbdModalResourceAddComponent, {
+    this.addModalRef = this.modalService.open(NgbdModalResourceAddComponent, {
       // before the modal closes, save the state and refresh the dictionaries on the feature container
       beforeDismiss: (): boolean => {
         this.savedState = {
-          name: modalRef.componentInstance.dictName,
-          content: modalRef.componentInstance.dictContent,
-          separator: modalRef.componentInstance.dictSeparator,
-          description: modalRef.componentInstance.dictionaryDescription,
-          savedQueue: modalRef.componentInstance.uploader.queue
+          name: this.addModalRef.componentInstance.dictName,
+          content: this.addModalRef.componentInstance.dictContent,
+          separator: this.addModalRef.componentInstance.dictSeparator,
+          description: this.addModalRef.componentInstance.dictionaryDescription,
+          savedQueue: this.addModalRef.componentInstance.uploader.queue
         };
-
-        // refresh the dictionaries in the panel to show the new updates done by users
-        this.refreshUserDictionary();
         return true;
       }
     });
 
     // initialize the value from saving, used when user close the popup and then temporarily save dictionary.
-    modalRef.componentInstance.uploader.queue = this.savedState.savedQueue;
-    modalRef.componentInstance.dictName = this.savedState.name;
-    modalRef.componentInstance.dictContent = this.savedState.content;
-    modalRef.componentInstance.dictSeparator = this.savedState.separator;
-    modalRef.componentInstance.dictionaryDescription = this.savedState.description;
+    this.addModalRef.componentInstance.uploader.queue = this.savedState.savedQueue;
+    this.addModalRef.componentInstance.dictName = this.savedState.name;
+    this.addModalRef.componentInstance.dictContent = this.savedState.content;
+    this.addModalRef.componentInstance.dictSeparator = this.savedState.separator;
+    this.addModalRef.componentInstance.dictionaryDescription = this.savedState.description;
+    this.addModalRef.componentInstance.isUploading = this.isUploading;
+
+    this.addModalRef.componentInstance.uploadRespond.subscribe((response: Observable<GenericWebResponse>) => {
+      this.isUploading = true;
+      response.subscribe(
+        () => {
+          this.isUploading = false;
+          this.refreshUserDictionary();
+          try {
+            this.addModalRef.componentInstance.isUploading = false;
+            this.addModalRef.componentInstance.resetDictionary();
+            this.addModalRef.componentInstance.activeModal.dismiss('close');
+          } catch (error) {}
+    }, error => {
+      this.isUploading = false;
+      try {this.addModalRef.componentInstance.isUploading = false; } catch (error) {}
+      console.log(error);
+      alert(`Error encountered: ${error.status}\nMessage: ${error.message}`); }
+    );
+  });
 
     // checks if the files saved in the state are valid.
-    modalRef.componentInstance.checkCurrentFilesValid();
+    this.addModalRef.componentInstance.checkCurrentFilesValid();
   }
 
   /**

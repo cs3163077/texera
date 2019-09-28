@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
 import { UserDictionaryService } from '../../../../service/user-dictionary/user-dictionary.service';
@@ -44,6 +44,8 @@ export class NgbdModalResourceAddComponent {
   public dictContent: string = '';
   public dictSeparator: string = '';
   public dictionaryDescription: string = '';
+
+  @Output() uploadRespond = new EventEmitter();
 
   // This stores the names of invalid files due to duplication
   public duplicateFiles: string[] = [];
@@ -125,17 +127,19 @@ export class NgbdModalResourceAddComponent {
       description: this.dictionaryDescription
     };
 
-    this.userDictionaryService.putUserDictionaryData(userDictionary)
-      .subscribe(() => {
-        this.isUploading = false;
-        this.resetDictionary();
-        this.activeModal.dismiss('close');
-      }, error => {
-        this.isUploading = false;
-        console.log(error);
-        alert(`Error encountered: ${error.status}\nMessage: ${error.message}`);
-      }
+    this.uploadRespond.emit(
+      this.userDictionaryService.putUserDictionaryData(userDictionary)
     );
+    //   .subscribe(() => {
+    //     this.isUploading = false;
+    //     this.resetDictionary();
+    //     this.activeModal.dismiss('close');
+    //   }, error => {
+    //     this.isUploading = false;
+    //     console.log(error);
+    //     alert(`Error encountered: ${error.status}\nMessage: ${error.message}`);
+    //   }
+    // )
   }
 
   /**
@@ -157,18 +161,21 @@ export class NgbdModalResourceAddComponent {
     this.isUploading = true;
 
     // get a list of Files
-    const fileList = this.uploader.queue.map(fileitem => fileitem._file);
-    this.userDictionaryService.uploadFileList(fileList)
-      .subscribe(() => {
-        this.isUploading = false;
-        this.resetDictionary();
-        this.activeModal.dismiss('close');
-      }, error => {
-        this.isUploading = false;
-        console.log(error);
-        alert(`Error encountered: ${error.status}\nMessage: ${error.message}`);
-      }
+    const fileList: File[] = this.uploader.queue.map(fileitem => fileitem._file);
+
+    this.uploadRespond.emit(
+      this.userDictionaryService.uploadFileList(fileList)
     );
+    //   .subscribe(() => {
+    //     this.isUploading = false;
+    //     this.resetDictionary();
+    //     this.activeModal.dismiss('close');
+    //   }, error => {
+    //     this.isUploading = false;
+    //     console.log(error);
+    //     alert(`Error encountered: ${error.status}\nMessage: ${error.message}`);
+    //   }
+    // );
   }
 
   /**
