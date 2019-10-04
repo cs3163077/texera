@@ -124,6 +124,13 @@ export class UserDictionarySectionComponent {
         () => {
           this.isUploading = false;
           this.refreshUserDictionary();
+          this.savedState = {
+            name: '',
+            content: '',
+            separator: '',
+            description: '',
+            savedQueue: [],
+          };
           try {
             this.addModalRef.componentInstance.isUploading = false;
             this.addModalRef.componentInstance.resetDictionary();
