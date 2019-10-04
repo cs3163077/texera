@@ -163,15 +163,4 @@ describe('NgbdModalResourceAddComponent', () => {
     httpTestingController.verify();
   });
 
-  it(`should send an http request to the backend URL when uploadFiles() is called when isUploading is false`, () => {
-    const testFileList: File[] = Array<File>();
-    testFileList.push(testTextFile);
-
-    component.uploader.addToQueue(testFileList);
-    component.uploadFiles();
-
-    const req = httpTestingController.expectOne(`${environment.apiUrl}/${uploadFilesURL}`);
-    httpTestingController.verify();
-  });
-
 });
